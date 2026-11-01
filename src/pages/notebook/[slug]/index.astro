@@ -27,7 +27,7 @@ const nextForthcoming = nextEntry ? undefined : forthcoming.find((f) => f.number
 <Base
   title={`Notebook No. ${number} · ${title}`}
   description={dek}
-  ogImage={`${entryPath(entry)}og.png`}
+  ogImage={`/og/notebook/${entry.id}.png`}
   ogType="article"
   publishedTime={date}
   current="notebook"

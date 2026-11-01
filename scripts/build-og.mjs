@@ -1,12 +1,30 @@
+#!/usr/bin/env node
 /**
- * Open Graph preview images (1200×630 PNG), rendered at build time with
- * satori (layout to SVG) and resvg (SVG to PNG). LinkedIn, Slack and others
- * show these as the link card.
+ * Renders the Open Graph preview images (1200×630 PNG) that LinkedIn, Slack
+ * and others show as the link card, into public/og/:
+ *
+ *   public/og/site.png                 landing page
+ *   public/og/notebook.png             Notebook index
+ *   public/og/notebook/<entry-id>.png  one per entry
+ *
+ * Runs with plain Node before `astro build`, so the native resvg binary never
+ * goes through Vite or an adapter's runtime bundle. Drafts are skipped unless
+ * --drafts is passed (`npm run dev` passes it). public/og/ is emptied first,
+ * so draft images from a dev run never reach a production build.
+ *
+ *   node scripts/build-og.mjs [--drafts]
  */
-import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { basename, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { Resvg } from '@resvg/resvg-js';
 import satori from 'satori';
+import { parse as parseYaml } from 'yaml';
+
+const root = fileURLToPath(new URL('..', import.meta.url));
+const outDir = join(root, 'public/og');
+const notebookDir = join(root, 'src/content/notebook');
+const includeDrafts = process.argv.includes('--drafts');
 
 const WIDTH = 1200;
 const HEIGHT = 630;
@@ -22,15 +40,15 @@ const color = {
   marker: '#E39A6E',
 };
 
-function font(pkg: string, file: string): Buffer {
-  return readFileSync(join(process.cwd(), 'node_modules/@fontsource', pkg, 'files', file));
+function font(pkg, file) {
+  return readFileSync(join(root, 'node_modules/@fontsource', pkg, 'files', file));
 }
 
 const fonts = [
   { name: 'IM Fell English', data: font('im-fell-english', 'im-fell-english-latin-400-normal.woff'), weight: 400, style: 'normal' },
   { name: 'IM Fell English', data: font('im-fell-english', 'im-fell-english-latin-400-italic.woff'), weight: 400, style: 'italic' },
   { name: 'IBM Plex Mono', data: font('ibm-plex-mono', 'ibm-plex-mono-latin-500-normal.woff'), weight: 500, style: 'normal' },
-] as const;
+];
 
 const logo =
   'data:image/svg+xml;base64,' +
@@ -38,22 +56,15 @@ const logo =
     `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48"><path d="M14 8 H8 V40 H14 M34 8 H40 V40 H34" fill="none" stroke="${color.ink}" stroke-width="5"/><rect x="15" y="15" width="18" height="8" fill="${color.ink}"/><rect x="15" y="27.5" width="12" height="5" fill="${color.brand}"/></svg>`,
   ).toString('base64');
 
-type Node = { type: string; props: Record<string, unknown> };
-
-function h(type: string, style: Record<string, unknown>, ...children: (Node | string)[]): Node {
+function h(type, style, ...children) {
   return { type, props: { style, children } };
 }
 
-export interface Card {
-  /** Small caps line at the top right, e.g. "NOTEBOOK · NO. 1". */
-  kicker: string;
-  title: string;
-  /** Words at the end of the title to set on the marker highlight. */
-  highlight?: string;
-  subtitle: string;
-}
-
-function card({ kicker, title, highlight, subtitle }: Card): Node {
+/**
+ * kicker: small caps line at the top right, e.g. "NOTEBOOK · NO. 1".
+ * highlight: words at the end of the title to set on the marker highlight.
+ */
+function card({ kicker, title, highlight, subtitle }) {
   const lead = highlight && title.endsWith(highlight) ? title.slice(0, -highlight.length).trimEnd() : title;
   const titleSize = title.length > 48 ? 64 : 76;
 
@@ -107,8 +118,48 @@ function card({ kicker, title, highlight, subtitle }: Card): Node {
   );
 }
 
-export async function renderCard(input: Card): Promise<Response> {
-  const svg = await satori(card(input) as never, { width: WIDTH, height: HEIGHT, fonts: fonts as never });
+async function write(path, input) {
+  const svg = await satori(card(input), { width: WIDTH, height: HEIGHT, fonts });
   const png = new Resvg(svg, { fitTo: { mode: 'width', value: WIDTH } }).render().asPng();
-  return new Response(new Uint8Array(png), { headers: { 'Content-Type': 'image/png' } });
+  const file = join(outDir, path);
+  mkdirSync(join(file, '..'), { recursive: true });
+  writeFileSync(file, png);
+  console.log(`og: public/og/${path}`);
+}
+
+/** Frontmatter of each entry. The schema itself is checked by Astro. */
+function entries() {
+  return readdirSync(notebookDir)
+    .filter((file) => file.endsWith('.md'))
+    .map((file) => {
+      const text = readFileSync(join(notebookDir, file), 'utf8');
+      const match = text.match(/^---\r?\n([\s\S]*?)\r?\n---/);
+      if (!match) throw new Error(`${file}: no frontmatter`);
+      // Same id as Astro's glob loader for lowercase-kebab file names.
+      return { id: basename(file, '.md'), data: parseYaml(match[1]) };
+    })
+    .filter((entry) => includeDrafts || entry.data.status === 'published');
+}
+
+rmSync(outDir, { recursive: true, force: true });
+
+await write('site.png', {
+  kicker: 'SECURITY LABELS FOR AI AGENT TELEMETRY',
+  title: 'Your agent’s actions, glossed.',
+  highlight: 'glossed.',
+  subtitle: 'A short, typed gloss beside every tool call in an agent’s OpenTelemetry trace.',
+});
+
+await write('notebook.png', {
+  kicker: 'NOTEBOOK',
+  title: 'Notebook',
+  subtitle: 'Longer write-ups of what building spangloss turns up.',
+});
+
+for (const entry of entries()) {
+  await write(`notebook/${entry.id}.png`, {
+    kicker: `NOTEBOOK · NO. ${entry.data.number}`,
+    title: entry.data.title,
+    subtitle: entry.data.dek,
+  });
 }
