@@ -1,0 +1,22 @@
+---
+import Base from '../../layouts/Base.astro';
+import EntryList from '../../components/EntryList.astro';
+---
+
+<Base
+  title="Notebook · spangloss"
+  description="Longer write-ups of what building spangloss turns up. The short versions run on LinkedIn."
+  ogImage="/notebook/og.png"
+  current="notebook"
+>
+  <section class="notebook-index">
+    <div class="section-head">
+      <div>
+        <h1 class="ink">Notebook</h1>
+        <p class="lede">Longer write-ups of what building spangloss turns up. The short versions run on LinkedIn.</p>
+      </div>
+      <a href="/notebook/rss.xml" class="mono-link">RSS feed</a>
+    </div>
+    <EntryList />
+  </section>
+</Base>

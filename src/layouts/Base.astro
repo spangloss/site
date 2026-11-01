@@ -1,0 +1,119 @@
+---
+import '../styles/global.css';
+import Logo from '../components/Logo.astro';
+
+interface Props {
+  title: string;
+  description: string;
+  /** Path to a generated 1200×630 PNG, relative to the site root. */
+  ogImage?: string;
+  ogType?: 'website' | 'article';
+  publishedTime?: Date;
+  /** Which nav item is the current page. */
+  current?: 'home' | 'notebook';
+  reading?: boolean;
+}
+
+const {
+  title,
+  description,
+  ogImage = '/og.png',
+  ogType = 'website',
+  publishedTime,
+  current,
+  reading = false,
+} = Astro.props;
+
+const canonical = new URL(Astro.url.pathname, Astro.site);
+const ogImageUrl = new URL(ogImage, Astro.site);
+
+// On the landing page the section links stay in-page; elsewhere they go home.
+const base = current === 'home' ? '' : '/';
+const nav = [
+  { href: `${base}#how`, label: 'How it works' },
+  { href: `${base}#labels`, label: 'Labels' },
+  { href: `${base}#findings`, label: 'Findings' },
+  { href: current === 'home' ? '#notebook' : '/notebook/', label: 'Notebook', key: 'notebook' },
+  { href: `${base}#status`, label: 'Status' },
+  { href: 'https://github.com/spangloss/spangloss', label: 'GitHub ↗' },
+];
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonical} />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="alternate" type="application/rss+xml" title="spangloss Notebook" href="/notebook/rss.xml" />
+    <link rel="sitemap" href="/sitemap-index.xml" />
+
+    <meta property="og:site_name" content="spangloss" />
+    <meta property="og:type" content={ogType} />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:image" content={ogImageUrl} />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content={title} />
+    {publishedTime && <meta property="article:published_time" content={publishedTime.toISOString()} />}
+    {ogType === 'article' && <meta property="article:author" content="Phil DiCorpo" />}
+    <meta name="author" content="Phil DiCorpo" />
+    <meta name="twitter:card" content="summary_large_image" />
+  </head>
+  <body>
+    <div class:list={['page', 'linen', { 'page--reading': reading }]}>
+      <svg class="svg-defs" aria-hidden="true" width="0" height="0">
+        <filter id="ink" x="-5%" y="-10%" width="110%" height="120%">
+          <feTurbulence type="fractalNoise" baseFrequency="0.035" numOctaves="2" seed="7" result="n"></feTurbulence>
+          <feDisplacementMap in="SourceGraphic" in2="n" scale="2.2" xChannelSelector="R" yChannelSelector="G" result="d"></feDisplacementMap>
+          <feGaussianBlur in="d" stdDeviation="0.35"></feGaussianBlur>
+        </filter>
+        <filter id="marker" x="-5%" y="-20%" width="110%" height="140%">
+          <feTurbulence type="fractalNoise" baseFrequency="0.02 0.3" numOctaves="2" seed="9" result="n"></feTurbulence>
+          <feDisplacementMap in="SourceGraphic" in2="n" scale="6" xChannelSelector="R" yChannelSelector="G"></feDisplacementMap>
+        </filter>
+      </svg>
+
+      <svg class="grain" aria-hidden="true">
+        <filter id="grain">
+          <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="3" stitchTiles="stitch"></feTurbulence>
+          <feColorMatrix type="saturate" values="0"></feColorMatrix>
+        </filter>
+        <rect width="100%" height="100%" filter="url(#grain)"></rect>
+      </svg>
+
+      <div class="wrap">
+        <header class="site-header">
+          <a href={current === 'home' ? '#top' : '/'} class="wordmark" aria-label="spangloss home">
+            <Logo />
+            <span class="wordmark__text">span<span class="wordmark__accent">gloss</span></span>
+          </a>
+          <nav class="site-nav" aria-label="Main">
+            {
+              nav.map((item) => (
+                <a href={item.href} aria-current={item.key && item.key === current ? 'page' : undefined}>
+                  {item.label}
+                </a>
+              ))
+            }
+          </nav>
+        </header>
+
+        <slot />
+
+        <footer class="site-footer">
+          <p>
+            A project by Phil DiCorpo · <a href="#">LinkedIn</a> · <a href="https://github.com/spangloss/spangloss">GitHub</a>
+          </p>
+          <p class="site-footer__note">span + gloss · sec.* is vendor-neutral by design</p>
+        </footer>
+      </div>
+    </div>
+  </body>
+</html>

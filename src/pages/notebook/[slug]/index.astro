@@ -1,0 +1,59 @@
+---
+import type { GetStaticPaths } from 'astro';
+import { render } from 'astro:content';
+import Base from '../../../layouts/Base.astro';
+import { forthcoming } from '../../../data/forthcoming';
+import { entryPath, formatDate, getEntries, type Entry } from '../../../lib/notebook';
+
+export const getStaticPaths = (async () => {
+  const entries = await getEntries();
+  return entries.map((entry) => ({ params: { slug: entry.id }, props: { entry, entries } }));
+}) satisfies GetStaticPaths;
+
+interface Props {
+  entry: Entry;
+  entries: Entry[];
+}
+
+const { entry, entries } = Astro.props;
+const { Content } = await render(entry);
+const { number, title, dek, date, status, linkedin_url } = entry.data;
+
+// The next entry by number: a written one if it exists, else an announced one.
+const nextEntry = entries.find((e) => e.data.number > number);
+const nextForthcoming = nextEntry ? undefined : forthcoming.find((f) => f.number > number);
+---
+
+<Base
+  title={`Notebook No. ${number} · ${title}`}
+  description={dek}
+  ogImage={`${entryPath(entry)}og.png`}
+  ogType="article"
+  publishedTime={date}
+  current="notebook"
+  reading
+>
+  <article class="entry">
+    <p class="entry__meta">
+      <a href="/notebook/">NOTEBOOK</a>
+      <span>NO. {number}</span>
+      <span>{date ? formatDate(date) : '[DATE]'}</span>
+      {status === 'draft' && <span class="draft-flag">DRAFT</span>}
+    </p>
+    <h1 class="ink">{title}</h1>
+    <p class="entry__dek">{dek}</p>
+    <p class="entry__byline">
+      Phil DiCorpo{linkedin_url && <> · <a href={linkedin_url}>Short version on LinkedIn ↗</a></>}
+    </p>
+
+    <div class="prose">
+      <Content />
+    </div>
+
+    <nav class="entry-nav" aria-label="Notebook">
+      <a href="/notebook/">← All notebook entries</a>
+      {nextEntry && <a href={entryPath(nextEntry)}>Next: {nextEntry.data.title} →</a>}
+      {nextForthcoming && <span class="entry-nav__pending">Next: {nextForthcoming.title}</span>}
+    </nav>
+  </article>
+</Base>

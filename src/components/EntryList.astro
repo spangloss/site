@@ -1,0 +1,42 @@
+---
+import { forthcoming } from '../data/forthcoming';
+import { entryPath, formatDate, getEntries } from '../lib/notebook';
+
+const entries = await getEntries();
+const taken = new Set(entries.map((entry) => entry.data.number));
+
+const rows = [
+  ...entries.map((entry) => ({
+    number: entry.data.number,
+    title: entry.data.title,
+    dek: entry.data.dek,
+    href: entryPath(entry) as string | undefined,
+    date: formatDate(entry.data.date),
+    draft: entry.data.status === 'draft',
+  })),
+  ...forthcoming
+    .filter((item) => !taken.has(item.number))
+    .map((item) => ({ ...item, href: undefined, date: 'FORTHCOMING', draft: false })),
+].sort((a, b) => a.number - b.number);
+---
+
+<div class="entry-list">
+  {
+    rows.map((row) => {
+      const Tag = row.href ? 'a' : 'div';
+      return (
+        <Tag href={row.href} class="entry-row">
+          <span class="entry-row__num">No. {row.number}</span>
+          <span>
+            <span class="entry-row__title">{row.title}</span>
+            <span class="entry-row__dek">{row.dek}</span>
+          </span>
+          <span class="entry-row__date">
+            {row.date}
+            {row.draft && <span class="draft-flag"> · DRAFT</span>}
+          </span>
+        </Tag>
+      );
+    })
+  }
+</div>

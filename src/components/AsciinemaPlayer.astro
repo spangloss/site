@@ -1,0 +1,65 @@
+---
+/**
+ * Plays a recording from public/casts/ with the self-hosted asciinema player.
+ * The player script and stylesheet are bundled into the site; nothing loads
+ * from a third party.
+ *
+ *   <AsciinemaPlayer src="demo.cast" title="Labeling a session" />
+ */
+interface Props {
+  /** File name inside public/casts/, e.g. "demo.cast". */
+  src: string;
+  /** Accessible name for the player. */
+  title: string;
+  /** Options passed to AsciinemaPlayer.create. See docs.asciinema.org. */
+  options?: Record<string, unknown>;
+}
+
+const { src, title, options = {} } = Astro.props;
+
+const playerOptions = {
+  fit: 'width',
+  idleTimeLimit: 2,
+  terminalFontFamily: "'IBM Plex Mono', monospace",
+  theme: 'spangloss',
+  ...options,
+};
+---
+
+<figure class="cast crt" role="group" aria-label={title}>
+  <div data-cast-src={`/casts/${src}`} data-cast-options={JSON.stringify(playerOptions)}></div>
+</figure>
+
+<script>
+  import * as AsciinemaPlayer from 'asciinema-player';
+  import 'asciinema-player/dist/bundle/asciinema-player.css';
+
+  for (const el of document.querySelectorAll<HTMLElement>('[data-cast-src]')) {
+    AsciinemaPlayer.create(el.dataset.castSrc!, el, JSON.parse(el.dataset.castOptions ?? '{}'));
+  }
+</script>
+
+<style is:global>
+  /* Player colors follow the site's terminal palette. Two classes so this
+     outranks the player's own .ap-player defaults, which load later. */
+  .ap-player.asciinema-player-theme-spangloss {
+    --term-color-foreground: var(--phosphor);
+    --term-color-background: var(--crt);
+    --term-color-0: #15120e;
+    --term-color-1: #c0611f;
+    --term-color-2: #a8b46a;
+    --term-color-3: #f2a93b;
+    --term-color-4: #8fa3a8;
+    --term-color-5: #c08a9a;
+    --term-color-6: #9cc0a8;
+    --term-color-7: #e9e2d0;
+    --term-color-8: #5a5045;
+    --term-color-9: #e39a6e;
+    --term-color-10: #c6cf8a;
+    --term-color-11: #ffc46b;
+    --term-color-12: #b0c2c6;
+    --term-color-13: #dbabb9;
+    --term-color-14: #bcdcc6;
+    --term-color-15: #f4eedf;
+  }
+</style>
