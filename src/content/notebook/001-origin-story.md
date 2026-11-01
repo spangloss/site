@@ -2,8 +2,8 @@
 number: 1
 title: "I gave a tiny model my AI agent’s diary"
 dek: "Why a DLP veteran started teaching small decision models to read AI agents’ telemetry."
-status: draft
-# date: "[DATE]"                       # required once status is published
+status: published
+date: 2026-11-01
 # linkedin_url: "[LINKEDIN POST URL]"
 ---
 
@@ -61,4 +61,4 @@ The target is a public v0 by the end of November, with the full label taxonomy a
 
 If you run AI agents anywhere near production and any of this sounds familiar, I’d love to hear what you’re seeing. And if you’ve struggled through the pain of developing a rules-based engine for security that’s come under siege by false positives, I understand. I’ve been there.
 
-[GitHub](https://github.com/spangloss/spangloss) · [LinkedIn]([YOUR LINKEDIN URL]) · [RSS](/notebook/rss.xml)
+[GitHub](https://github.com/spangloss/spangloss) · [LinkedIn](https://www.linkedin.com/in/phildicorpo/) · [RSS](/notebook/rss.xml)
