@@ -2,8 +2,8 @@
 import AsciinemaPlayer from './AsciinemaPlayer.astro';
 
 /**
- * The landing page's demo. Until a recording exists it shows a placeholder.
- * To ship the demo, add the file to public/casts/ and pass its name as `cast`.
+ * The landing page's demo. Renders nothing until it is given a recording:
+ * add the file to public/casts/ and pass its name as `cast`.
  */
 interface Props {
   cast?: string;
@@ -12,16 +12,11 @@ interface Props {
 const { cast } = Astro.props;
 ---
 
-<section class="demo" aria-labelledby="demo-h">
-  <h2 id="demo-h" class="visually-hidden">Demo</h2>
-  {
-    cast ? (
+{
+  cast && (
+    <section class="demo" aria-labelledby="demo-h">
+      <h2 id="demo-h" class="visually-hidden">Demo</h2>
       <AsciinemaPlayer src={cast} title="spangloss labeling an agent session" />
-    ) : (
-      <div class="demo__placeholder crt">
-        <p class="glow">[ DEMO RECORDING · FORTHCOMING ]</p>
-        <p class="glow demo__sub">spangloss glossing a live agent session</p>
-      </div>
-    )
-  }
-</section>
+    </section>
+  )
+}

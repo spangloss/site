@@ -28,7 +28,7 @@ src/
   data/forthcoming.ts      Announced entries with no file yet
   layouts/Base.astro       <head>, OG tags, header, footer, textures
   components/              EntryList, AsciinemaPlayer, DemoSlot, Logo
-  lib/notebook.ts          getEntries() (drops drafts in production), dates
+  lib/notebook.ts          getEntries(), getListing() (draft rules), dates
   pages/
     index.astro            Landing page
     notebook/index.astro   Notebook index
@@ -60,11 +60,11 @@ scripts/build-og.mjs       Renders public/og/ (satori + resvg)
 5. Run `npm run dev` and check the entry page, the landing page list and `/og/notebook/<slug>.png` (the LinkedIn card image).
 6. To publish, set `status: published` and a `date`, then build.
 
-Drafts show in `npm run dev` (marked DRAFT) and never in `npm run build`: no page, no OG image, and no listing, RSS item or sitemap entry. The filter is `getEntries()` in `src/lib/notebook.ts`; always list entries through it, never with `getCollection` directly. `scripts/build-og.mjs` applies the same rule to OG images on its own, since it runs outside Astro.
+Drafts show in `npm run dev` (marked DRAFT, with a page). In `npm run build` a draft has no page, OG image, RSS item or sitemap entry, but still appears in the Notebook lists like a forthcoming entry: number, title, dek and FORTHCOMING, without a link. Lists come from `getListing()` in `src/lib/notebook.ts`, which merges entries and `src/data/forthcoming.ts` by number (a Markdown entry wins) and fails the build if two entries, or two forthcoming items, share a number. Pages and the RSS feed come from `getEntries()`. Use these two; never call `getCollection` directly. `scripts/build-og.mjs` applies the same rule to OG images on its own, since it runs outside Astro.
 
 ## Demo recording
 
-`src/components/AsciinemaPlayer.astro` plays a file from `public/casts/`. The landing page has `<DemoSlot />`, which shows a placeholder until it is given a recording: put the file in `public/casts/` and change it to `<DemoSlot cast="demo.cast" />`.
+`src/components/AsciinemaPlayer.astro` plays a file from `public/casts/`. The landing page has `<DemoSlot />`, which renders nothing until it is given a recording: put the file in `public/casts/` and change it to `<DemoSlot cast="demo.cast" />`.
 
 ## Rules
 

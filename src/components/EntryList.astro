@@ -1,23 +1,7 @@
 ---
-import { forthcoming } from '../data/forthcoming';
-import { entryPath, formatDate, getEntries } from '../lib/notebook';
+import { getListing } from '../lib/notebook';
 
-const entries = await getEntries();
-const taken = new Set(entries.map((entry) => entry.data.number));
-
-const rows = [
-  ...entries.map((entry) => ({
-    number: entry.data.number,
-    title: entry.data.title,
-    dek: entry.data.dek,
-    href: entryPath(entry) as string | undefined,
-    date: formatDate(entry.data.date),
-    draft: entry.data.status === 'draft',
-  })),
-  ...forthcoming
-    .filter((item) => !taken.has(item.number))
-    .map((item) => ({ ...item, href: undefined, date: 'FORTHCOMING', draft: false })),
-].sort((a, b) => a.number - b.number);
+const rows = await getListing();
 ---
 
 <div class="entry-list">
