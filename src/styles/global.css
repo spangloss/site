@@ -649,6 +649,81 @@ code {
   font-family: var(--sans);
 }
 
+.labels__table td:first-child {
+  white-space: nowrap;
+}
+
+.labels__table tr.labels__group,
+.labels__table tr.labels__sub {
+  border-bottom-color: var(--rule-faint);
+}
+
+.labels__table tr.labels__sub td {
+  padding-top: 10px;
+  padding-bottom: 10px;
+  font-size: 14px;
+}
+
+.labels__table tr.labels__sub td:first-child {
+  padding-left: 16px;
+  color: var(--muted);
+}
+
+.labels__table tr.labels__sub td:nth-child(2) {
+  font-size: 15px;
+}
+
+.labels__notes {
+  margin: 16px 0 0;
+  font-size: 15px;
+  color: var(--muted);
+}
+
+/* Phones: one block per label instead of a scrolling table */
+@media (max-width: 640px) {
+  .labels__table table,
+  .labels__table tbody,
+  .labels__table tr,
+  .labels__table td {
+    display: block;
+  }
+
+  .labels__table thead {
+    position: absolute;
+    left: -9999px;
+  }
+
+  .labels__table tbody tr {
+    padding: 14px 0;
+  }
+
+  .labels__table td,
+  .labels__table tr.labels__sub td,
+  .labels__table tr.labels__sub td:first-child {
+    padding: 0;
+    white-space: normal;
+  }
+
+  .labels__table tr.labels__sub {
+    padding-left: 16px;
+  }
+
+  .labels__table td:nth-child(2) {
+    margin-top: 4px;
+    font-size: 16px;
+  }
+
+  .labels__table td:last-child {
+    margin-top: 4px;
+    font-size: 13px;
+    color: var(--muted);
+  }
+
+  .labels__table td:last-child::before {
+    content: attr(data-when);
+  }
+}
+
 /* ---------- Landing: findings ---------- */
 
 .findings {

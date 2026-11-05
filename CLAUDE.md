@@ -23,6 +23,7 @@ The visual spec is in `design/` (`A3.dc.html` for the landing page, `A3Notebook.
 
 ```
 src/
+  data/labels.json         Copy of spangloss/spangloss site/labels.json (scripts/sync-labels.mjs)
   content.config.ts        Notebook collection schema
   content/notebook/*.md    Notebook entries
   data/forthcoming.ts      Announced entries with no file yet
@@ -68,7 +69,7 @@ Drafts show in `npm run dev` (marked DRAFT, with a page). In `npm run build` a d
 
 ## Rules
 
-- **The labels table must match `TAXONOMY.md` in `spangloss/spangloss`.** The `labels` array in `src/pages/index.astro` (label names, what each asks, when it is asked) and the taxonomy version in the text beside it are a summary of that file. When the taxonomy changes, update the site in the same pass, and check it against the current `TAXONOMY.md` before changing either. The taxonomy is the owner's; never edit the table to say something `TAXONOMY.md` doesn't.
+- **The labels table is rendered from `src/data/labels.json`**, a copy of `site/labels.json` in `spangloss/spangloss`. That file is generated from `TAXONOMY.md` (`python -m spangloss.sitegen`) and its wording is approved by the owner. Never edit the wording in this repo: change it upstream, then run `node scripts/sync-labels.mjs [ref]` to copy it here (`--check` reports drift). `index.astro` only maps it to rows: basis to "Asked when", `†` for labels code can also answer, `‡` for labels some backends don't report, and indented trifecta sub-labels. The taxonomy version shown on the page comes from the same file.
 - The same goes for the findings, which summarize `docs/findings/capture-gaps.md` in that repo, and the status list.
 - Notebook prose, titles and deks are the owner's writing. Fix formatting freely; change wording only when asked.
 - No tracking scripts, analytics, third-party embeds or externally hosted fonts or scripts.

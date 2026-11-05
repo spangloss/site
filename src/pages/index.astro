@@ -2,6 +2,7 @@
 import Base from '../layouts/Base.astro';
 import DemoSlot from '../components/DemoSlot.astro';
 import EntryList from '../components/EntryList.astro';
+import taxonomy from '../data/labels.json';
 
 const glossLabels = [
   { key: 'sec.effect', value: 'read', p: 0.9 },
@@ -57,19 +58,46 @@ const principles = [
   },
 ];
 
-// Must match TAXONOMY.md in spangloss/spangloss (see CLAUDE.md).
-const labels = [
-  { label: 'sec.effect', asks: 'What the call does: read, write, delete, execute, or none', when: 'always' },
-  { label: 'sec.reversibility', asks: 'Whether a mistake could be undone', when: 'arguments' },
-  { label: 'sec.data_class', asks: 'Secrets, health, payment or personal data, or none', when: 'arguments' },
-  {
-    label: 'sec.trifecta.*',
-    asks: 'Whether the call reads private data, takes in untrusted content, or sends data out: the three ingredients of exfiltration',
-    when: 'always',
-  },
-  { label: 'sec.intent', asks: 'Why the call was made, in nine categories, from retrieve to delegate', when: 'arguments' },
-  { label: 'sec.injection', asks: 'Whether content entering the agent’s context tries to steer it', when: 'incoming content' },
-];
+// Rendered from src/data/labels.json, a copy of site/labels.json in spangloss/spangloss
+// (generated from TAXONOMY.md, wording approved by the owner). Never edit the wording here;
+// change it upstream and run `node scripts/sync-labels.mjs`. See CLAUDE.md.
+type LabelEntry = {
+  name: string;
+  asks_about: string;
+  min_basis: string;
+  source?: string;
+  backends?: { not_reported_by: string[] };
+  sub_labels?: LabelEntry[];
+};
+type LabelRow = { label: string; asks: string; when: string; mark: string; kind: 'top' | 'group' | 'sub' };
+
+const basisWhen: Record<string, string> = { name_only: 'always', args: 'arguments', content: 'content' };
+// Labels whose gating isn't a plain basis (TAXONOMY.md's gating table): asked when the call brings content in.
+const whenOverride: Record<string, string> = { 'sec.injection': 'incoming content' };
+
+const typographic = (text: string) => text.replace(/'/g, '’').replace(/\.$/, '');
+const whenFor = (l: LabelEntry) => {
+  const when = whenOverride[l.name] ?? basisWhen[l.min_basis];
+  if (!when) throw new Error(`labels.json: no "Asked when" text for ${l.name} (min_basis ${l.min_basis})`);
+  return when;
+};
+const markFor = (l: LabelEntry) =>
+  (l.source === 'both' ? ' †' : '') + ((l.backends?.not_reported_by.length ?? 0) > 0 ? ' ‡' : '');
+
+const labels: LabelRow[] = (taxonomy.labels as LabelEntry[]).flatMap((l) =>
+  l.sub_labels
+    ? [
+        { label: `${l.name}.*`, asks: typographic(l.asks_about), when: whenFor(l), mark: markFor(l), kind: 'group' as const },
+        ...l.sub_labels.map((s) => ({
+          label: `↳ .${s.name.split('.').pop()}`,
+          asks: typographic(s.asks_about),
+          when: whenFor(s),
+          mark: markFor(s),
+          kind: 'sub' as const,
+        })),
+      ]
+    : [{ label: l.name, asks: typographic(l.asks_about), when: whenFor(l), mark: markFor(l), kind: 'top' as const }],
+);
 
 const findings = [
   {
@@ -91,6 +119,10 @@ const findings = [
   {
     title: 'MCP tool descriptions never appear',
     body: 'A poisoned tool description is invisible to monitoring built on these traces.',
+  },
+  {
+    title: 'CLAUDE.md enters the agent’s context unrecorded',
+    body: 'A project’s instruction file shapes what the agent does, but no span or event records it. Only the model’s own reply can echo it.',
   },
 ];
 
@@ -117,14 +149,14 @@ const built = [
   'Scoring: intervals, call shapes, calibration',
   'Seeded scenarios: isolated runs, fake secrets, canaries',
   'Gold set: real and scenario calls',
+  'Injection shapes, hard negatives, tool-poisoning scenario',
+  `Taxonomy v${taxonomy.taxonomy}, frozen for v0`,
 ];
 
 const next = [
-  'More injection shapes and hard negatives',
-  'Tool-poisoning scenario',
-  'Settle the injection question',
+  'README, threat model and known limitations',
+  'Publish taxonomy and per-label results with v0',
   'Larger gold set, including non-coding agents',
-  'Publish taxonomy and per-label results',
 ];
 ---
 
@@ -227,12 +259,13 @@ const next = [
     <div class="labels__text">
       <h2 class="section-title ink">The labels</h2>
       <p class="lede">
-        Taxonomy v0.3.2, draft. Small answer sets and no abstain answer: uncertainty shows up as a low probability. A
+        Taxonomy v{taxonomy.taxonomy}, frozen for v0. Small answer sets and no abstain answer: uncertainty shows up as a low probability. A
         label is asked only when the call carries the evidence it needs.
       </p>
       <p class="lede">
-        Some answers are derived, not asked: a subagent spawn is never itself a source or a sink, and where a loaded tool
-        comes from is read from its server name.
+        Some answers are set by code, not asked: a subagent spawn is never itself a source or a sink; where a loaded tool
+        comes from is read from its server name; results from MCP servers count as untrusted unless you list the server
+        as first-party; and test-config files such as <code>.env.test</code> aren’t secrets.
       </p>
       <p class="lede">
         <a href="https://github.com/spangloss/spangloss/blob/main/TAXONOMY.md" class="mono-link">Read the full taxonomy ↗</a>
@@ -246,15 +279,22 @@ const next = [
         <tbody>
           {
             labels.map((row) => (
-              <tr>
-                <td>{row.label}</td>
+              <tr class={row.kind === 'top' ? undefined : `labels__${row.kind}`}>
+                <td>
+                  {row.label}
+                  {row.mark}
+                </td>
                 <td>{row.asks}</td>
-                <td>{row.when}</td>
+                <td data-when="Asked when: ">{row.when}</td>
               </tr>
             ))
           }
         </tbody>
       </table>
+      <p class="labels__notes">
+        † Code answers some calls by rule; the model answers the rest.<br />‡ Not every model backend reports it: see{' '}
+        <a href="https://github.com/spangloss/spangloss/blob/main/docs/findings/known-limitations.md">known limitations ↗</a>
+      </p>
     </div>
   </section>
 
@@ -265,7 +305,7 @@ const next = [
       <div>
         <h2 class="section-title ink">What agent telemetry doesn’t show</h2>
         <p class="lede">
-          Five gaps in Claude Code 2.1.312’s OpenTelemetry output, each observed while building spangloss. Every one
+          Six gaps in Claude Code 2.1.312’s OpenTelemetry output, each observed while building spangloss. Every one
           limits what any monitoring built on these traces can see.
         </p>
       </div>
