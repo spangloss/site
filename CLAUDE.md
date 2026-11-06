@@ -25,8 +25,9 @@ The visual spec is in `design/` (`A3.dc.html` for the landing page, `A3Notebook.
 src/
   data/labels.json         Copy of spangloss/spangloss site/labels.json (scripts/sync-labels.mjs)
   content.config.ts        Notebook collection schema
-  content/notebook/*.md    Notebook entries
-  data/forthcoming.ts      Announced entries with no file yet
+  content/notebook/*.md    Published Notebook entries
+  content/notebook/_drafts/  Draft entries (git-ignored, local only)
+  data/forthcoming.ts      Announced entries not yet published
   layouts/Base.astro       <head>, OG tags, header, footer, textures
   components/              EntryList, AsciinemaPlayer, DemoSlot, Logo
   lib/notebook.ts          getEntries(), getListing() (draft rules), dates
@@ -37,12 +38,20 @@ src/
     notebook/[slug]/       Entry page
 public/casts/              asciinema recordings (.cast)
 public/og/                 Generated OG images (git-ignored)
-scripts/build-og.mjs       Renders public/og/ (satori + resvg)
+scripts/build-og.mjs       Renders public/og/ (satori + resvg); fails on a misplaced draft
+.githooks/pre-commit       Refuses commits that stage a draft
 ```
 
 ## Adding a Notebook entry
 
-1. Create `src/content/notebook/NNN-short-slug.md`, lowercase with hyphens. The file name (without `.md`) becomes the URL, `/notebook/NNN-short-slug/`, and the OG image name.
+This repo is public, so drafts never enter git. They live in `src/content/notebook/_drafts/`, which `.gitignore` excludes. Two guards back this up:
+
+- `scripts/build-og.mjs` runs before every build, Cloudflare's included, and fails if any file in `src/content/notebook/` outside `_drafts/` has `status: draft`.
+- `.githooks/pre-commit` refuses a commit that stages any file under `_drafts/` (for example with `git add -f`), or a notebook file whose staged content has `status: draft`. Enable it once per clone with `git config core.hooksPath .githooks`.
+
+Never commit a draft, move one out of `_drafts/` before it is published, or bypass the hook (`--no-verify`).
+
+1. Create `src/content/notebook/_drafts/NNN-short-slug.md`, lowercase with hyphens. The file name (without `.md`) becomes the URL, `/notebook/NNN-short-slug/`, and the OG image name; the `_drafts/` folder is not part of either.
 2. Frontmatter:
 
    ```yaml
@@ -56,12 +65,25 @@ scripts/build-og.mjs       Renders public/og/ (satori + resvg)
    ---
    ```
 
-3. Write the body in plain Markdown. `##` headings, tables, inline code and links are styled by `.prose` in `global.css`. For the two special blocks, use the HTML already in `002-telemetry-gaps.md`: a quoted excerpt (`<figure class="leaf">` with `<blockquote>` and `<figcaption>`) and a boxed note (`<div class="aside leaf">`).
-4. If the entry was listed in `src/data/forthcoming.ts`, delete it there.
-5. Run `npm run dev` and check the entry page, the landing page list and `/og/notebook/<slug>.png` (the LinkedIn card image).
-6. To publish, set `status: published` and a `date`, then build.
+3. Write the body in plain Markdown. `##` headings, tables, inline code and links are styled by `.prose` in `global.css`. Two special blocks are written as HTML:
 
-Drafts show in `npm run dev` (marked DRAFT, with a page). In `npm run build` a draft has no page, OG image, RSS item or sitemap entry, but still appears in the Notebook lists like a forthcoming entry: number, title, dek and FORTHCOMING, without a link. Lists come from `getListing()` in `src/lib/notebook.ts`, which merges entries and `src/data/forthcoming.ts` by number (a Markdown entry wins) and fails the build if two entries, or two forthcoming items, share a number. Pages and the RSS feed come from `getEntries()`. Use these two; never call `getCollection` directly. `scripts/build-og.mjs` applies the same rule to OG images on its own, since it runs outside Astro.
+   ```html
+   <figure class="leaf">
+   <blockquote>Quoted excerpt.</blockquote>
+   <figcaption>Source of the excerpt.</figcaption>
+   </figure>
+
+   <div class="aside leaf">
+   <p class="aside__head">Boxed note heading</p>
+   <p>Boxed note text, with <a href="https://example.com">links</a>.</p>
+   </div>
+   ```
+
+4. List the entry in `src/data/forthcoming.ts` (number, title, dek). The draft file never reaches Cloudflare, so this keeps its number in the public lists as FORTHCOMING.
+5. Run `npm run dev` and check the entry page, the landing page list and `/og/notebook/<slug>.png` (the LinkedIn card image).
+6. To publish: move the file up to `src/content/notebook/`, set `status: published` and a `date`, remove its item from `src/data/forthcoming.ts`, then build and commit.
+
+Drafts show in `npm run dev` (marked DRAFT, with a page). A local `npm run build` still loads `_drafts/`; there a draft has no page, OG image, RSS item or sitemap entry, and lists like a forthcoming entry: number, title, dek and FORTHCOMING, without a link. Cloudflare's build has no `_drafts/` at all, so the `forthcoming.ts` item is what it lists. Lists come from `getListing()` in `src/lib/notebook.ts`, which merges entries and `src/data/forthcoming.ts` by number (a Markdown entry wins) and fails the build if two entries, or two forthcoming items, share a number. Pages and the RSS feed come from `getEntries()`. Use these two; never call `getCollection` directly. `scripts/build-og.mjs` applies the same rule to OG images on its own, since it runs outside Astro.
 
 ## Demo recording
 

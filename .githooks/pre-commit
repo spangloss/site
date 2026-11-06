@@ -1,0 +1,32 @@
+#!/bin/sh
+# Refuses a commit that would publish a Notebook draft. This repo is public;
+# drafts stay in src/content/notebook/_drafts/, which is git-ignored (see
+# CLAUDE.md, "Adding a Notebook entry"). Enable with:
+#   git config core.hooksPath .githooks
+
+notebook=src/content/notebook
+status=0
+
+# Paths only: added, copied, modified or renamed files in the index.
+staged=$(git diff --cached --name-only --diff-filter=ACMR -- "$notebook")
+
+for path in $staged; do
+  case "$path" in
+    "$notebook"/_drafts/*)
+      echo "pre-commit: $path is a draft (under _drafts/); drafts are never committed." >&2
+      status=1
+      ;;
+    *.md)
+      # Check the staged content, not the working copy.
+      if git show ":$path" | awk 'NR == 1 && $0 != "---" { exit } NR > 1 && $0 == "---" { exit } /^status:[[:space:]]*["'"'"']?draft["'"'"']?[[:space:]]*(#.*)?$/ { found = 1 } END { exit !found }'; then
+        echo "pre-commit: $path has status: draft; move it to $notebook/_drafts/ instead." >&2
+        status=1
+      fi
+      ;;
+  esac
+done
+
+if [ "$status" -ne 0 ]; then
+  echo "pre-commit: commit refused. Unstage with: git restore --staged <path>" >&2
+fi
+exit "$status"

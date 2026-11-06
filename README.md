@@ -10,4 +10,10 @@ npm run dev      # http://localhost:4321
 npm run build    # static output in dist/
 ```
 
-See [CLAUDE.md](CLAUDE.md) for how the site is organized and how to add a Notebook entry.
+Once per clone, enable the pre-commit hook that keeps Notebook drafts out of this public repo:
+
+```
+git config core.hooksPath .githooks
+```
+
+Drafts live in `src/content/notebook/_drafts/`, which is git-ignored. See [CLAUDE.md](CLAUDE.md) for how the site is organized and how to add and publish a Notebook entry.

@@ -8,13 +8,16 @@
  *   public/og/notebook/<entry-id>.png  one per entry
  *
  * Runs with plain Node before `astro build`, so the native resvg binary never
- * goes through Vite or an adapter's runtime bundle. Drafts are skipped unless
- * --drafts is passed (`npm run dev` passes it). public/og/ is emptied first,
- * so draft images from a dev run never reach a production build.
+ * goes through Vite or an adapter's runtime bundle. Drafts live in
+ * src/content/notebook/_drafts/ (git-ignored) and are skipped unless --drafts
+ * is passed (`npm run dev` passes it). A draft anywhere else in
+ * src/content/notebook/ fails the run, and with it every build, Cloudflare's
+ * included. public/og/ is emptied first, so draft images from a dev run never
+ * reach a production build.
  *
  *   node scripts/build-og.mjs [--drafts]
  */
-import { mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { basename, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { Resvg } from '@resvg/resvg-js';
@@ -24,6 +27,7 @@ import { parse as parseYaml } from 'yaml';
 const root = fileURLToPath(new URL('..', import.meta.url));
 const outDir = join(root, 'public/og');
 const notebookDir = join(root, 'src/content/notebook');
+const draftsDir = join(notebookDir, '_drafts');
 const includeDrafts = process.argv.includes('--drafts');
 
 const WIDTH = 1200;
@@ -127,19 +131,35 @@ async function write(path, input) {
   console.log(`og: public/og/${path}`);
 }
 
-/** Frontmatter of each entry. The schema itself is checked by Astro. */
-function entries() {
-  return readdirSync(notebookDir)
+/** Frontmatter of each entry in dir. The schema itself is checked by Astro. */
+function readEntries(dir) {
+  if (!existsSync(dir)) return [];
+  return readdirSync(dir)
     .filter((file) => file.endsWith('.md'))
     .map((file) => {
-      const text = readFileSync(join(notebookDir, file), 'utf8');
+      const text = readFileSync(join(dir, file), 'utf8');
       const match = text.match(/^---\r?\n([\s\S]*?)\r?\n---/);
       if (!match) throw new Error(`${file}: no frontmatter`);
-      // Same id as Astro's glob loader for lowercase-kebab file names.
-      return { id: basename(file, '.md'), data: parseYaml(match[1]) };
-    })
-    .filter((entry) => includeDrafts || entry.data.status === 'published');
+      // Same id as the glob loader in src/content.config.ts.
+      return { file, id: basename(file, '.md'), data: parseYaml(match[1]) };
+    });
 }
+
+/**
+ * Published entries, plus drafts from _drafts/ with --drafts. A draft outside
+ * _drafts/ is tracked by git and would go public, so it fails the build.
+ */
+function entries() {
+  const tracked = readEntries(notebookDir);
+  const misplaced = tracked.filter((entry) => entry.data.status === 'draft');
+  if (misplaced.length > 0) {
+    const files = misplaced.map((entry) => `src/content/notebook/${entry.file}`).join(', ');
+    throw new Error(`Draft outside src/content/notebook/_drafts/: ${files}. Move it into _drafts/ (git-ignored).`);
+  }
+  return includeDrafts ? [...tracked, ...readEntries(draftsDir)] : tracked;
+}
+
+const notebookEntries = entries();
 
 rmSync(outDir, { recursive: true, force: true });
 
@@ -156,7 +176,7 @@ await write('notebook.png', {
   subtitle: 'Longer write-ups of what building spangloss turns up.',
 });
 
-for (const entry of entries()) {
+for (const entry of notebookEntries) {
   await write(`notebook/${entry.id}.png`, {
     kicker: `NOTEBOOK · NO. ${entry.data.number}`,
     title: entry.data.title,
