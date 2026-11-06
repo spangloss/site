@@ -3,7 +3,14 @@ import { glob } from 'astro/loaders';
 import { z } from 'astro/zod';
 
 const notebook = defineCollection({
-  loader: glob({ pattern: '**/*.md', base: './src/content/notebook' }),
+  // Drafts live in _drafts/, which is git-ignored, so they load locally and never
+  // reach a production build. The id drops the folder, so an entry keeps its URL
+  // when it moves up to publish.
+  loader: glob({
+    pattern: ['*.md', '_drafts/*.md'],
+    base: './src/content/notebook',
+    generateId: ({ entry }) => entry.replace(/^_drafts\//, '').replace(/\.md$/, ''),
+  }),
   schema: z
     .object({
       number: z.number().int().positive(),
