@@ -1,0 +1,243 @@
+---
+import Base from '../layouts/Base.astro';
+import data from '../data/results.json';
+import {
+  DAGGER,
+  REPO,
+  accuracy,
+  dec,
+  fileName,
+  inline,
+  pct,
+  ratio,
+  repoUrl,
+  type Results,
+  type Scored,
+} from '../lib/results';
+
+// Rendered from src/data/results.json, a copy of site/results.json in spangloss/spangloss
+// (python -m spangloss.resultsgen, lead approved by the owner). Never edit numbers or
+// wording here; regenerate upstream and run `node scripts/sync-results.mjs`. See CLAUDE.md.
+const results = data as Results;
+if (results.schema !== 'spangloss-results/1') throw new Error(`results.json: unknown schema ${results.schema}`);
+if (results.lead.status !== 'approved') throw new Error('results.json: the lead is not approved');
+
+const small = results.small_n;
+const names = Object.fromEntries(results.models.map((m) => [m.id, m.name]));
+const setNames = Object.fromEntries(results.gold_sets.map((s) => [s.id, s.name]));
+const prov = results.provenance;
+const flag = (n: number) => (n < small ? DAGGER : '');
+
+// A labeler that doesn't report injection gets no column, only the note under the table.
+const injectionModels = results.models.filter((m) => !m.not_reported.includes('sec.injection'));
+const injectionMissing = results.models.filter((m) => m.not_reported.includes('sec.injection'));
+const injectionSee = results.known_limitations.find((k) => k.see.endsWith('#secinjection-needs-jev'))?.see;
+if (injectionMissing.length && !injectionSee) throw new Error('results.json: no known limitation for sec.injection');
+
+const scoredCells = (m: Scored) => [
+  { head: 'n', value: `${m.n}${flag(m.n)}` },
+  { head: 'Accuracy (95% CI)', value: accuracy(m) },
+  { head: 'Shapes', value: `${m.shapes}${flag(m.shapes)}` },
+  { head: 'Accuracy per shape', value: `${pct(m.shape_accuracy)}${flag(m.shapes)}` },
+  { head: 'ECE', value: dec(m.ece) },
+  { head: 'Precision', value: ratio(m.precision, small, 'none answered') },
+  { head: 'Recall', value: ratio(m.recall, small, 'none in gold') },
+  { head: 'Not labeled', value: String(m.not_labeled) },
+];
+const heads = ['n', 'Accuracy (95% CI)', 'Shapes', 'Accuracy per shape', 'ECE', 'Precision', 'Recall', 'Not labeled'];
+---
+
+<Base
+  title="Results · spangloss"
+  description={`Per-label results for spangloss v0 at taxonomy ${results.taxonomy}: accuracy with 95% intervals, per call shape, and calibration, on real sessions and seeded scenarios scored separately.`}
+  current="results"
+>
+  <section class="results-head">
+    <h1 class="ink">Results</h1>
+    <p class="results-lead">{results.lead.text}</p>
+    <p class="results-meta">
+      Taxonomy {results.taxonomy} · generated {prov.generated} at commit{' '}
+      <a href={`${REPO}/commit/${prov.commit}`}>{prov.commit.slice(0, 7)}</a> · labelers:{' '}
+      {results.models.map((m) => `${m.name} (${m.runs})`).join(', ')} · † marks a cell resting on fewer than {small} calls
+      ·{' '}<a href={repoUrl('site/results.json')}>results.json ↗</a>
+    </p>
+  </section>
+
+  <section class="results-section" aria-labelledby="gold-sets">
+    <h2 id="gold-sets" class="section-title ink">Gold sets</h2>
+    <p class="lede">The two sets are scored separately and never pooled.</p>
+    <table class="data-table results-table results-table--sets">
+      <thead>
+        <tr><th>Gold set</th><th>What it is</th><th>Calls</th><th>Unique call shapes</th></tr>
+      </thead>
+      <tbody>
+        {
+          results.gold_sets.map((s) => (
+            <tr>
+              <th scope="row">{s.name}</th>
+              <td class="results-table__prose">{s.description}</td>
+              <td data-head="Calls">{s.calls}</td>
+              <td data-head="Unique call shapes">{s.shapes}</td>
+            </tr>
+          ))
+        }
+      </tbody>
+    </table>
+  </section>
+
+  {
+    results.gold_sets.map((s) => (
+      <section class="results-section" aria-labelledby={s.id}>
+        <h2 id={s.id} class="section-title ink">{s.name}</h2>
+        <p class="lede">
+          {s.calls} calls, {s.shapes} unique call shapes. Precision and recall are of <code>yes</code> for yes/no labels
+          and of <code>secrets</code> for data_class.
+        </p>
+        <div class="results-scroll">
+          <table class="data-table results-table results-table--labels">
+            <thead>
+              <tr>
+                <th>Label</th>
+                <th>Labeler</th>
+                {heads.map((h) => <th>{h}</th>)}
+              </tr>
+            </thead>
+            {s.labels.map((entry) => {
+              const models = Object.entries(entry.models);
+              return (
+                <tbody>
+                  {models.map(([backend, m], i) => (
+                    <tr>
+                      {i === 0 && (
+                        <th scope="rowgroup" rowspan={models.length} class="results-table__label">
+                          {entry.label}
+                        </th>
+                      )}
+                      <td class="results-table__labeler">{names[backend]}</td>
+                      {m.status === 'not_reported' ? (
+                        <td colspan={heads.length} class="results-table__note">
+                          not reported (<a href={repoUrl(m.see)}>why ↗</a>)
+                        </td>
+                      ) : (
+                        scoredCells(m).map((c) => <td data-head={c.head}>{c.value}</td>)
+                      )}
+                    </tr>
+                  ))}
+                </tbody>
+              );
+            })}
+          </table>
+        </div>
+
+        <h3 class="results-subhead">Set by rule</h3>
+        <p class="lede">Written by code, not by a labeler, and not counted in the table above.</p>
+        <table class="data-table results-table results-table--rules">
+          <thead>
+            <tr><th>Label</th><th>n</th><th>Agrees with gold</th></tr>
+          </thead>
+          <tbody>
+            {s.set_by_rule.map((r) => (
+              <tr>
+                <th scope="row">{r.label}</th>
+                <td data-head="n">{`${r.n}${flag(r.n)}`}</td>
+                <td data-head="Agrees with gold">{`${r.agrees_with_gold} of ${r.n}`}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </section>
+    ))
+  }
+
+  <section class="results-section" aria-labelledby="injection">
+    <h2 id="injection" class="section-title ink">Injection by call shape</h2>
+    <p class="lede">
+      Gold answers for <code>sec.injection</code> and how many calls each labeler that reports it answered <code
+        >yes</code
+      >, by call shape. The overall accuracy hides which kinds of content a labeler gets right.
+    </p>
+    <table class="data-table results-table results-table--injection">
+      <thead>
+        <tr>
+          <th>Gold set</th>
+          <th>Call shape</th>
+          <th>Gold</th>
+          <th>n</th>
+          {injectionModels.map((m) => <th>{m.name} <code>yes</code></th>)}
+        </tr>
+      </thead>
+      <tbody>
+        {
+          results.injection_by_shape.map((r) => (
+            <tr>
+              <td data-head="Gold set">{setNames[r.set]}</td>
+              <th scope="row">{r.shape}</th>
+              <td data-head="Gold">
+                <code>{r.gold}</code>
+              </td>
+              <td data-head="n">{`${r.n}${flag(r.n)}`}</td>
+              {injectionModels.map((model) => {
+                const m = r.models[model.id];
+                const value =
+                  m.status === 'not_reported'
+                    ? 'not reported'
+                    : m.labeled === r.n
+                      ? String(m.yes)
+                      : `${m.yes} of ${m.labeled} labeled`;
+                return <td data-head={`${model.name} yes`}>{value}</td>;
+              })}
+            </tr>
+          ))
+        }
+      </tbody>
+    </table>
+    {
+      injectionMissing.length > 0 && injectionSee && (
+        <p class="results-note">
+          {injectionMissing.map((m) => m.name).join(' and ')} doesn’t report <code>sec.injection</code> in v0;{' '}
+          <a href={repoUrl(injectionSee)}>known limitations ↗</a> has its numbers from before that decision.
+        </p>
+      )
+    }
+  </section>
+
+  <section class="results-section" aria-labelledby="limitations">
+    <h2 id="limitations" class="section-title ink">Known limitations</h2>
+    <p class="lede">Weaknesses v0 ships with, written up with their evidence:</p>
+    <ul class="results-list">
+      {
+        results.known_limitations.map((k) => (
+          <li>
+            <a href={repoUrl(k.see)} set:html={`${inline(k.title)} ↗`} />
+          </li>
+        ))
+      }
+    </ul>
+  </section>
+
+  <section class="results-section results-section--last" aria-labelledby="method">
+    <h2 id="method" class="section-title ink">Method</h2>
+    <ul class="results-list">
+      {
+        results.method.map((note) => (
+          <li>
+            {note.text}
+            {note.see.length > 0 && (
+              <>
+                {' '}
+                See{' '}
+                {note.see.map((path, i) => (
+                  <>
+                    {i > 0 && ', '}
+                    <a href={repoUrl(path)}>{fileName(path)} ↗</a>
+                  </>
+                ))}
+                .
+              </>
+            )}
+          </li>
+        ))
+      }
+    </ul>
+  </section>
+</Base>

@@ -1136,3 +1136,210 @@ a.entry-row:hover .entry-row__title {
   border-radius: 14px;
   overflow: hidden;
 }
+
+/* ---------- Results ---------- */
+
+.results-head {
+  padding: 72px 0 24px;
+  border-bottom: 1.5px solid var(--ink);
+}
+
+.results-head h1 {
+  margin: 0 0 20px;
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: clamp(40px, 5vw, 58px);
+  line-height: 1.08;
+}
+
+.results-lead {
+  margin: 0;
+  max-width: 46em;
+  font-size: 18px;
+}
+
+.results-meta {
+  margin: 20px 0 0;
+  font-family: var(--mono);
+  font-size: 14px;
+  color: var(--muted);
+}
+
+.results-section {
+  padding: 56px 0 0;
+}
+
+.results-section .section-title {
+  line-height: 1.15;
+}
+
+.results-section--last {
+  padding-bottom: 72px;
+}
+
+.results-section .lede {
+  max-width: 46em;
+  margin-bottom: 20px;
+}
+
+.results-subhead {
+  margin: 36px 0 6px;
+  font-family: var(--mono);
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.results-scroll {
+  overflow-x: auto;
+}
+
+.results-table {
+  font-size: 14px;
+}
+
+.results-table th,
+.results-table td {
+  padding: 9px 10px;
+  vertical-align: top;
+}
+
+.results-table tbody th {
+  font-weight: 500;
+  text-align: left;
+}
+
+.results-table .results-table__prose {
+  font-family: var(--sans);
+  font-size: 16px;
+}
+
+/* One tbody per label, Kev and Jev rows under one label cell */
+.results-table--labels tbody {
+  border-bottom: 1px solid var(--rule-faint);
+}
+
+.results-table--labels tbody:last-child {
+  border-bottom: 0;
+}
+
+.results-table--labels tbody tr {
+  border-bottom: 0;
+}
+
+/* Cells stay on one line so intervals and ratios read whole; only headers wrap */
+.results-table--labels {
+  font-size: 13px;
+}
+
+.results-table--labels tbody th,
+.results-table--labels td {
+  white-space: nowrap;
+}
+
+.results-table--labels th,
+.results-table--labels td {
+  padding: 9px 7px;
+}
+
+.results-table--labels thead th {
+  vertical-align: bottom;
+}
+
+/* With the label cell spanning both rows, the second labeler cell is a first child */
+.results-table--labels td.results-table__labeler {
+  padding-left: 7px;
+}
+
+.results-table__labeler {
+  color: var(--muted);
+}
+
+.results-table__note {
+  color: var(--muted);
+}
+
+.results-note {
+  margin: 16px 0 0;
+  font-size: 15px;
+  color: var(--muted);
+}
+
+.results-list {
+  margin: 0;
+  padding-left: 1.2em;
+  max-width: 46em;
+}
+
+.results-list li + li {
+  margin-top: 10px;
+}
+
+/* Phones: one block per row instead of a scrolling table, as the labels table does */
+@media (max-width: 640px) {
+  .results-table,
+  .results-table tbody,
+  .results-table tr,
+  .results-table th,
+  .results-table td {
+    display: block;
+  }
+
+  .results-table thead {
+    position: absolute;
+    left: -9999px;
+  }
+
+  .results-table tbody tr {
+    display: flex;
+    flex-direction: column;
+    padding: 14px 0;
+  }
+
+  .results-table tbody th {
+    order: -1;
+    font-weight: 600;
+  }
+
+  .results-table th,
+  .results-table td,
+  .results-table--labels th,
+  .results-table--labels td {
+    padding: 0;
+    white-space: normal;
+  }
+
+  .results-table td[data-head]::before {
+    content: attr(data-head) ': ';
+    color: var(--muted);
+  }
+
+  .results-table .results-table__prose {
+    margin: 4px 0;
+  }
+
+  /* Labels: the label heads its block, each labeler's numbers sit under it */
+  .results-table--labels tbody {
+    padding: 14px 0;
+  }
+
+  .results-table--labels tbody tr {
+    padding: 8px 0 0 16px;
+  }
+
+  .results-table--labels tbody th {
+    margin: 0 0 4px -16px;
+    padding: 0;
+  }
+
+  .results-table--labels td.results-table__labeler {
+    padding-left: 0;
+    color: var(--ink);
+    font-weight: 600;
+  }
+}
+
+@media (min-width: 641px) {
+  .results-table--rules {
+    max-width: 640px;
+  }
+}

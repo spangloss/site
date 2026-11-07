@@ -10,7 +10,7 @@ interface Props {
   ogType?: 'website' | 'article';
   publishedTime?: Date;
   /** Which nav item is the current page. */
-  current?: 'home' | 'notebook';
+  current?: 'home' | 'notebook' | 'results';
   reading?: boolean;
 }
 
@@ -33,6 +33,7 @@ const nav = [
   { href: `${base}#how`, label: 'How it works' },
   { href: `${base}#labels`, label: 'Labels' },
   { href: `${base}#findings`, label: 'Findings' },
+  { href: '/results/', label: 'Results', key: 'results' },
   { href: current === 'home' ? '#notebook' : '/notebook/', label: 'Notebook', key: 'notebook' },
   { href: `${base}#status`, label: 'Status' },
   { href: 'https://github.com/spangloss/spangloss', label: 'GitHub ↗' },
