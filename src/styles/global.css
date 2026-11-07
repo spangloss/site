@@ -28,6 +28,13 @@
   --brand: #c0611f;
   --marker: #e39a6e;
 
+  /* Charts. Kev and Jev's series colors, validated for colorblind readers against
+     --paper; text never wears them. */
+  --series-kev: #c0611f;
+  --series-jev: #2a70b0;
+  --chart-grid: rgba(31, 26, 20, 0.12);
+  --chart-on-fill: #ffffff;
+
   /* Terminal */
   --crt: #15120e;
   --phosphor: #f2a93b;
@@ -1341,5 +1348,405 @@ a.entry-row:hover .entry-row__title {
 @media (min-width: 641px) {
   .results-table--rules {
     max-width: 640px;
+  }
+}
+
+/* ---------- Results: text blocks ---------- */
+
+.results-notice {
+  margin: 14px 0 0;
+}
+
+.results-notice + .results-table {
+  margin-top: 28px;
+}
+
+.results-notice {
+  max-width: 46em;
+  font-size: 15px;
+  color: var(--muted);
+}
+
+.results-prose {
+  max-width: 46em;
+}
+
+.results-prose p {
+  margin: 0 0 14px;
+}
+
+.results-prose ul {
+  margin: 0;
+  padding-left: 1.2em;
+}
+
+.results-prose li + li {
+  margin-top: 10px;
+}
+
+.results-details > summary {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  cursor: pointer;
+  list-style: none;
+}
+
+.results-details > summary::-webkit-details-marker {
+  display: none;
+}
+
+.results-details > summary::after {
+  content: 'show';
+  font-family: var(--mono);
+  font-size: 14px;
+  color: var(--muted);
+}
+
+.results-details[open] > summary::after {
+  content: 'hide';
+}
+
+.results-details > summary .section-title {
+  margin-bottom: 12px;
+}
+
+/* ---------- Results: charts ---------- */
+/* Inline SVG drawn at build time from results.json. Marks carry the series color;
+   every piece of text stays in ink or muted. */
+
+.chart {
+  margin: 8px 0 0;
+  font-family: var(--mono);
+  font-size: 13px;
+  color: var(--ink);
+}
+
+.chart svg {
+  display: block;
+  overflow: visible;
+}
+
+.chart text {
+  fill: var(--ink);
+  font-family: var(--mono);
+  font-size: 12px;
+}
+
+.chart__legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 22px;
+  margin-bottom: 18px;
+}
+
+.chart__key {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.chart__hint,
+.chart__sub {
+  color: var(--muted);
+}
+
+.chart__title {
+  margin: 0;
+  font-family: var(--mono);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.chart__sub {
+  margin: 2px 0 8px;
+}
+
+.chart .chart__note,
+.chart .chart__tick text,
+.chart .acc__axis text {
+  fill: var(--muted);
+}
+
+.chart .chart__axis-title {
+  fill: var(--muted);
+  font-size: 12px;
+}
+
+.chart-grid line {
+  stroke: var(--chart-grid);
+  stroke-width: 1;
+}
+
+.mark--kev {
+  --series: var(--series-kev);
+}
+
+.mark--jev {
+  --series: var(--series-jev);
+}
+
+.mark--neutral {
+  --series: var(--ink-soft);
+}
+
+.mark__key,
+.mark__dot {
+  fill: var(--series);
+}
+
+.mark__dot {
+  stroke: var(--paper);
+  stroke-width: 2;
+}
+
+.mark__dot--hollow {
+  fill: var(--paper);
+  stroke: var(--series);
+}
+
+.mark__line {
+  stroke: var(--series);
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+/* Bigger hover targets than the marks themselves */
+.mark__hit {
+  stroke: transparent;
+  stroke-width: 16;
+}
+
+.mark__hitbox {
+  fill: transparent;
+}
+
+.mark:hover .mark__line {
+  stroke-width: 3;
+}
+
+.bar__fill {
+  fill: var(--series);
+}
+
+.bar__mid {
+  fill: var(--series);
+  opacity: 0.5;
+}
+
+.bar__rest {
+  fill: var(--series);
+  opacity: 0.22;
+}
+
+.bar__gap {
+  fill: var(--paper);
+}
+
+.chart .chart__value {
+  fill: var(--ink);
+}
+
+/* Chart 1: labels down the side, one panel per gold set */
+.acc {
+  --acc-label: 26ch;
+  display: grid;
+  grid-template-columns: var(--acc-label) 1fr 1fr;
+  column-gap: 40px;
+  font-size: 14px;
+}
+
+.acc__panel {
+  display: grid;
+  grid-column: 1 / 3;
+  grid-template-columns: var(--acc-label) 1fr;
+  column-gap: 40px;
+  align-items: center;
+}
+
+.acc__panel--more {
+  grid-column: 3;
+  grid-template-columns: 1fr;
+}
+
+.acc__panel--more .acc__label,
+.acc__panel--more .acc__corner {
+  display: none;
+}
+
+.acc .chart__title {
+  margin-bottom: 6px;
+}
+
+.acc__label {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.acc__plot {
+  padding: 0 20px 0 6px;
+}
+
+.acc__track,
+.acc__axis {
+  width: 100%;
+}
+
+/* Chart 2: one bar per call shape, in two groups */
+.bars {
+  display: grid;
+  grid-template-columns: minmax(14em, 20em) 1fr;
+  column-gap: 24px;
+  row-gap: 6px;
+  align-items: center;
+  max-width: 900px;
+}
+
+.bars__group {
+  grid-column: 1 / -1;
+  margin: 10px 0 2px;
+  font-family: var(--mono);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.bars__group:first-child {
+  margin-top: 0;
+}
+
+.bars__plot {
+  padding-right: 9em;
+}
+
+.bars__track {
+  width: 100%;
+}
+
+/* Chart 3: one stacked bar per labeler */
+.stack {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  column-gap: 24px;
+  row-gap: 12px;
+  align-items: center;
+  max-width: 900px;
+}
+
+.stack__label {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.stack__total {
+  color: var(--muted);
+  padding-left: 20px;
+}
+
+.stack__plot {
+  padding-right: 6em;
+}
+
+.stack__track {
+  width: 100%;
+}
+
+.chart .stack__in {
+  fill: var(--chart-on-fill);
+  font-weight: 600;
+}
+
+.chart .stack__in--dark {
+  fill: var(--ink);
+}
+
+.stack__short {
+  display: none;
+}
+
+/* Chart 4: small multiples, square plots */
+.calib {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 32px 56px;
+}
+
+.calib__panel {
+  flex: 0 1 380px;
+}
+
+.calib__svg {
+  width: 100%;
+  height: auto;
+}
+
+.calib__diagonal {
+  stroke: var(--muted);
+  stroke-width: 1;
+  stroke-dasharray: 4 4;
+}
+
+@media (max-width: 640px) {
+  .acc,
+  .acc__panel,
+  .acc__panel--more {
+    grid-column: 1;
+    grid-template-columns: 1fr;
+  }
+
+  .acc {
+    row-gap: 32px;
+  }
+
+  .acc__panel--more .acc__label {
+    display: block;
+  }
+
+  .acc__corner {
+    display: none;
+  }
+
+  .acc__label {
+    margin-top: 6px;
+    text-align: left;
+    font-size: 13px;
+  }
+
+  .acc__plot {
+    padding: 0 22px 0 6px;
+  }
+
+  .bars,
+  .stack {
+    grid-template-columns: 1fr;
+  }
+
+  .bars__label {
+    margin-top: 6px;
+  }
+
+  .bars__plot {
+    padding-right: 7.5em;
+  }
+
+  .stack__label {
+    flex-direction: row;
+    gap: 12px;
+  }
+
+  .stack__total {
+    padding-left: 0;
+  }
+
+  .stack__long {
+    display: none;
+  }
+
+  .stack__short {
+    display: inline;
   }
 }

@@ -1,0 +1,104 @@
+---
+// Chart 4: calibration, one small chart per gold set. Each non-empty confidence bin
+// (eval/score.py's 10 ECE bins, all scored labels pooled) is a point at its mean
+// confidence and accuracy, sized by its count; a bin under HOLLOW_BELOW answers is
+// drawn hollow. Points above the dashed diagonal are right more often than claimed.
+import { dec, marker, pct, type Results } from '../../lib/results';
+import SeriesKey from './SeriesKey.astro';
+
+interface Props {
+  results: Results;
+}
+const { results } = Astro.props;
+
+const HOLLOW_BELOW = 5;
+const W = 300;
+const H = 296;
+const L = 58; // plot box: left, top, size
+const T = 16;
+const S = 226;
+const px = (v: number) => L + v * S;
+const py = (v: number) => T + (1 - v) * S;
+const TICKS = [0, 0.2, 0.4, 0.6, 0.8, 1];
+const tick = (v: number) => (v === 0 || v === 1 ? String(v) : v.toFixed(1));
+const radius = (n: number) => 4 + 0.4 * Math.sqrt(n); // area grows with n
+
+const panels = results.gold_sets.map((set) => {
+  const rows = results.models.map((m) => {
+    const row = results.calibration.find((r) => r.set === set.id && r.model === m.id);
+    if (!row) throw new Error(`CalibrationChart: no calibration for ${m.id} on ${set.id}`);
+    return { model: m, row };
+  });
+  // Big points first, so small ones stay visible on top.
+  const points = rows
+    .flatMap(({ model, row }) =>
+      row.bins
+        .filter((b) => b.n > 0 && b.mean_confidence !== null && b.accuracy !== null)
+        .map((b) => ({ model, bin: b, conf: b.mean_confidence as number, acc: b.accuracy as number })),
+    )
+    .sort((a, b) => b.bin.n - a.bin.n);
+  return { set, rows, points };
+});
+---
+
+<figure class="chart chart--calibration" aria-label="Calibration: accuracy against mean confidence, per confidence bin">
+  <div class="chart__legend">
+    {results.models.map((m) => <SeriesKey model={m.id} shape={marker(m.id)} text={`${m.name} (${m.runs})`} />)}
+    <span class="chart__hint">size = answers in the bin · hollow = fewer than {HOLLOW_BELOW}</span>
+  </div>
+  <div class="calib">
+    {
+      panels.map(({ set, rows, points }) => (
+        <div class="calib__panel">
+          <h3 class="chart__title">{set.name}</h3>
+          <p class="chart__sub">{rows.map(({ model, row }) => `${model.name} ${row.n}`).join(' · ')} answers</p>
+          <svg class="calib__svg" viewBox={`0 0 ${W} ${H}`} role="group" aria-label={`Calibration, ${set.name}`}>
+            <g class="chart-grid">
+              {TICKS.map((t) => (
+                <>
+                  <line x1={px(t)} x2={px(t)} y1={T} y2={T + S} />
+                  <line x1={L} x2={L + S} y1={py(t)} y2={py(t)} />
+                </>
+              ))}
+            </g>
+            <line class="calib__diagonal" x1={px(0)} y1={py(0)} x2={px(1)} y2={py(1)} />
+            <g class="chart__tick" aria-hidden="true">
+              {TICKS.map((t) => (
+                <>
+                  <text x={px(t)} y={T + S + 16} text-anchor="middle">
+                    {tick(t)}
+                  </text>
+                  <text x={L - 8} y={py(t) + 4} text-anchor="end">
+                    {tick(t)}
+                  </text>
+                </>
+              ))}
+              <text class="chart__axis-title" x={L + S / 2} y={H - 4} text-anchor="middle">
+                Mean confidence
+              </text>
+              <text class="chart__axis-title" x="12" y={T + S / 2} text-anchor="middle" transform={`rotate(-90 12 ${T + S / 2})`}>
+                Accuracy
+              </text>
+            </g>
+            {points.map(({ model, bin, conf, acc }) => {
+              const r = radius(bin.n);
+              const hollow = bin.n < HOLLOW_BELOW;
+              const cls = `mark__dot${hollow ? ' mark__dot--hollow' : ''}`;
+              const half = r * 0.886; // a square with the circle's area
+              return (
+                <g class={`mark mark--${model.id}`}>
+                  <title>{`${model.name} · ${set.name} · confidence ${dec(bin.lo).slice(0, 3)}–${dec(bin.hi).slice(0, 3)}: ${bin.n} answer${bin.n === 1 ? '' : 's'}, mean confidence ${dec(conf)}, accuracy ${pct(acc)}`}</title>
+                  {marker(model.id) === 'square' ? (
+                    <rect class={cls} x={px(conf) - half} y={py(acc) - half} width={half * 2} height={half * 2} />
+                  ) : (
+                    <circle class={cls} cx={px(conf)} cy={py(acc)} r={r} />
+                  )}
+                </g>
+              );
+            })}
+          </svg>
+        </div>
+      ))
+    }
+  </div>
+</figure>

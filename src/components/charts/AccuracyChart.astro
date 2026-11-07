@@ -1,0 +1,96 @@
+---
+// Chart 1: accuracy (dot) and its 95% interval (line) per label and labeler, one
+// panel per gold set. Inline SVG drawn at build time; each mark's <title> carries
+// its numbers. Horizontal positions are percentages, so the SVG stretches to its
+// column while text and markers keep their pixel size.
+import { marker, pct, shortLabel, type Results } from '../../lib/results';
+import SeriesKey from './SeriesKey.astro';
+
+interface Props {
+  results: Results;
+}
+const { results } = Astro.props;
+
+const LO = 30; // x axis runs 30–100%
+const HI = 100;
+const TICKS = [40, 60, 80, 100];
+const x = (v: number) => `${((Math.min(Math.max(v * 100, LO), HI) - LO) / (HI - LO)) * 100}%`;
+
+const ROW_H = 40; // one label: Kev's line above Jev's
+const rowY = (i: number) => 12 + i * 16;
+
+const labels = [...new Set(results.gold_sets.flatMap((s) => s.labels.map((l) => l.label)))];
+const models = results.models;
+---
+
+<figure class="chart chart--accuracy" aria-labelledby="accuracy-chart">
+  <div class="chart__legend">
+    {models.map((m) => <SeriesKey model={m.id} shape={marker(m.id)} text={`${m.name} (${m.runs})`} />)}
+    <span class="chart__hint">dot = accuracy · line = 95% interval</span>
+  </div>
+  <div class="acc">
+    {
+      results.gold_sets.map((set, p) => (
+        <div class:list={['acc__panel', { 'acc__panel--more': p > 0 }]}>
+          <span class="acc__corner" />
+          <h3 class="chart__title">
+            {set.name} ({set.calls} calls)
+          </h3>
+          {labels.map((label) => {
+            const entry = set.labels.find((l) => l.label === label);
+            return (
+              <>
+                <span class="acc__label">{shortLabel(label)}</span>
+                <div class="acc__plot">
+                  <svg class="acc__track" height={ROW_H} role="group" aria-label={`${shortLabel(label)}, ${set.name}`}>
+                    <g class="chart-grid">
+                      {TICKS.map((t) => (
+                        <line x1={x(t / 100)} x2={x(t / 100)} y1="0" y2={ROW_H} />
+                      ))}
+                    </g>
+                    {entry &&
+                      models.map((model, i) => {
+                        const m = entry.models[model.id];
+                        const y = rowY(i);
+                        if (!m) return null;
+                        if (m.status === 'not_reported')
+                          return (
+                            <text class="chart__note" x="0" y={y + 4}>
+                              {model.name}: not reported
+                            </text>
+                          );
+                        if (m.accuracy === null || !m.ci95) return null;
+                        const [lo, hi] = m.ci95;
+                        return (
+                          <g class={`mark mark--${model.id}`}>
+                            <title>{`${model.name} · ${shortLabel(label)} · ${set.name}: ${pct(m.accuracy)} (${pct(lo, '')}–${pct(hi)}), ${m.correct} of ${m.n} right`}</title>
+                            <line class="mark__hit" x1={x(lo)} x2={x(hi)} y1={y} y2={y} />
+                            <line class="mark__line" x1={x(lo)} x2={x(hi)} y1={y} y2={y} />
+                            {marker(model.id) === 'square' ? (
+                              <rect class="mark__dot" x={x(m.accuracy)} y={y - 5} width="10" height="10" transform="translate(-5 0)" />
+                            ) : (
+                              <circle class="mark__dot" cx={x(m.accuracy)} cy={y} r="5.5" />
+                            )}
+                          </g>
+                        );
+                      })}
+                  </svg>
+                </div>
+              </>
+            );
+          })}
+          <span class="acc__corner" />
+          <div class="acc__plot">
+            <svg class="acc__axis" height="22" aria-hidden="true">
+              {TICKS.map((t) => (
+                <text x={x(t / 100)} y="16" text-anchor="middle">
+                  {t}%
+                </text>
+              ))}
+            </svg>
+          </div>
+        </div>
+      ))
+    }
+  </div>
+</figure>

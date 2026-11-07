@@ -37,6 +37,34 @@ export type InjectionRow = {
   n: number;
   models: Record<string, NotReported | { status: 'scored'; labeled: number; yes: number }>;
 };
+/** Owner-approved text: inline Markdown with `code` spans and [links](url). */
+export type TextItem = { head: string; text: string };
+export type TextBlock = { status: string; title: string; intro: string; items: TextItem[] };
+export type Notices = {
+  status: string;
+  items: {
+    accuracy_chart: string;
+    gold_sets_table: string;
+    real_sessions_table: string;
+    scenarios_table: string;
+    set_by_rule_tables: string;
+    injection_chart: string;
+    data_class_chart: string;
+    calibration_chart: string;
+  };
+};
+export type SecretsRow =
+  | { set: string; model: string; status: 'not_reported' }
+  | { set: string; model: string; status: 'scored'; flagged: number; real: number; test_config: number; other: number };
+export type CalibrationBin = {
+  lo: number;
+  hi: number;
+  n: number;
+  mean_confidence: number | null;
+  accuracy: number | null;
+};
+export type CalibrationRow = { set: string; model: string; n: number; bins: CalibrationBin[] };
+
 export type Results = {
   schema: string;
   title: string;
@@ -45,8 +73,14 @@ export type Results = {
   small_n: number;
   models: { id: string; name: string; runs: string; sec_model: string; not_reported: string[] }[];
   lead: { status: 'approved' | 'proposed'; text: string };
+  how_to_read: TextBlock;
+  findings: TextBlock;
+  notices: Notices;
+  caveats: TextBlock;
   gold_sets: GoldSet[];
   injection_by_shape: InjectionRow[];
+  secrets_flagged: SecretsRow[];
+  calibration: CalibrationRow[];
   known_limitations: { title: string; see: string }[];
   method: { text: string; see: string[] }[];
 };
@@ -74,5 +108,27 @@ export const ratio = (r: Ratio | undefined, small: number, empty: string) => {
 
 const escape = (s: string) =>
   s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-/** Escaped text with `code` spans as <code>. */
-export const inline = (s: string) => escape(s).replace(/`([^`]+)`/g, '<code>$1</code>');
+/** Escaped text with `code` spans as <code> and [text](https://…) as links. */
+export const inline = (s: string) =>
+  escape(s)
+    .replace(/`([^`]+)`/g, '<code>$1</code>')
+    .replace(/\[([^\]]+)\]\((https:\/\/[^)\s]+)\)/g, '<a href="$2">$1 ↗</a>');
+
+/** Approved text blocks; the build fails if any isn't approved. */
+export function checkApproved(results: Results) {
+  const blocks = { lead: results.lead, how_to_read: results.how_to_read, findings: results.findings, notices: results.notices, caveats: results.caveats };
+  for (const [name, block] of Object.entries(blocks)) {
+    if (block.status !== 'approved') throw new Error(`results.json: ${name} is not approved`);
+  }
+}
+
+/** A label without its sec. prefix, as the charts show it. */
+export const shortLabel = (label: string) => label.replace(/^sec\./, '');
+
+/** Each labeler's chart marker; its color is the --series-<id> variable in global.css. */
+export const MARKERS: Record<string, 'square' | 'circle'> = { kev: 'square', jev: 'circle' };
+export const marker = (id: string) => {
+  const shape = MARKERS[id];
+  if (!shape) throw new Error(`results.json: no chart marker for labeler ${id}`);
+  return shape;
+};

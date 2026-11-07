@@ -1,10 +1,15 @@
 ---
 import Base from '../layouts/Base.astro';
+import AccuracyChart from '../components/charts/AccuracyChart.astro';
+import CalibrationChart from '../components/charts/CalibrationChart.astro';
+import InjectionChart from '../components/charts/InjectionChart.astro';
+import SecretsChart from '../components/charts/SecretsChart.astro';
 import data from '../data/results.json';
 import {
   DAGGER,
   REPO,
   accuracy,
+  checkApproved,
   dec,
   fileName,
   inline,
@@ -16,11 +21,18 @@ import {
 } from '../lib/results';
 
 // Rendered from src/data/results.json, a copy of site/results.json in spangloss/spangloss
-// (python -m spangloss.resultsgen, lead approved by the owner). Never edit numbers or
-// wording here; regenerate upstream and run `node scripts/sync-results.mjs`. See CLAUDE.md.
+// (python -m spangloss.resultsgen, lead and explanations approved by the owner). Never
+// edit numbers or wording here; regenerate upstream and run `node scripts/sync-results.mjs`.
+// See CLAUDE.md.
 const results = data as Results;
 if (results.schema !== 'spangloss-results/1') throw new Error(`results.json: unknown schema ${results.schema}`);
-if (results.lead.status !== 'approved') throw new Error('results.json: the lead is not approved');
+checkApproved(results);
+const notices = results.notices.items;
+const tableNotice: Record<string, string> = {
+  real_sessions: notices.real_sessions_table,
+  scenarios: notices.scenarios_table,
+};
+const { findings, how_to_read: howToRead, caveats } = results;
 
 const small = results.small_n;
 const names = Object.fromEntries(results.models.map((m) => [m.id, m.name]));
@@ -63,6 +75,32 @@ const heads = ['n', 'Accuracy (95% CI)', 'Shapes', 'Accuracy per shape', 'ECE', 
     </p>
   </section>
 
+  <section class="results-section" aria-labelledby="findings">
+    <h2 id="findings" class="section-title ink">{findings.title}</h2>
+    <div class="results-prose">
+      <p set:html={inline(findings.intro)} />
+      {findings.items.map((item) => <p set:html={`<strong>${inline(item.head)}</strong> ${inline(item.text)}`} />)}
+    </div>
+  </section>
+
+  <section class="results-section" aria-labelledby="accuracy-chart">
+    <h2 id="accuracy-chart" class="section-title ink">Accuracy by label</h2>
+    <AccuracyChart results={results} />
+    <p class="results-notice" set:html={inline(notices.accuracy_chart)} />
+  </section>
+
+  <section class="results-section" aria-labelledby="how-to-read">
+    <details class="results-details" open>
+      <summary><h2 id="how-to-read" class="section-title ink">{howToRead.title}</h2></summary>
+      <div class="results-prose">
+        <p set:html={inline(howToRead.intro)} />
+        <ul>
+          {howToRead.items.map((item) => <li set:html={`<strong>${inline(item.head)}</strong> ${inline(item.text)}`} />)}
+        </ul>
+      </div>
+    </details>
+  </section>
+
   <section class="results-section" aria-labelledby="gold-sets">
     <h2 id="gold-sets" class="section-title ink">Gold sets</h2>
     <p class="lede">The two sets are scored separately and never pooled.</p>
@@ -83,6 +121,7 @@ const heads = ['n', 'Accuracy (95% CI)', 'Shapes', 'Accuracy per shape', 'ECE', 
         }
       </tbody>
     </table>
+    <p class="results-notice" set:html={inline(notices.gold_sets_table)} />
   </section>
 
   {
@@ -128,6 +167,7 @@ const heads = ['n', 'Accuracy (95% CI)', 'Shapes', 'Accuracy per shape', 'ECE', 
             })}
           </table>
         </div>
+        <p class="results-notice" set:html={inline(tableNotice[s.id])} />
 
         <h3 class="results-subhead">Set by rule</h3>
         <p class="lede">Written by code, not by a labeler, and not counted in the table above.</p>
@@ -145,6 +185,7 @@ const heads = ['n', 'Accuracy (95% CI)', 'Shapes', 'Accuracy per shape', 'ECE', 
             ))}
           </tbody>
         </table>
+        <p class="results-notice" set:html={inline(notices.set_by_rule_tables)} />
       </section>
     ))
   }
@@ -156,6 +197,8 @@ const heads = ['n', 'Accuracy (95% CI)', 'Shapes', 'Accuracy per shape', 'ECE', 
         >yes</code
       >, by call shape. The overall accuracy hides which kinds of content a labeler gets right.
     </p>
+    <InjectionChart results={results} />
+    <p class="results-notice" set:html={inline(notices.injection_chart)} />
     <table class="data-table results-table results-table--injection">
       <thead>
         <tr>
@@ -201,6 +244,18 @@ const heads = ['n', 'Accuracy (95% CI)', 'Shapes', 'Accuracy per shape', 'ECE', 
     }
   </section>
 
+  <section class="results-section" aria-labelledby="secrets-chart">
+    <h2 id="secrets-chart" class="section-title ink">What was flagged as secrets</h2>
+    <SecretsChart results={results} />
+    <p class="results-notice" set:html={inline(notices.data_class_chart)} />
+  </section>
+
+  <section class="results-section" aria-labelledby="calibration">
+    <h2 id="calibration" class="section-title ink">Calibration</h2>
+    <CalibrationChart results={results} />
+    <p class="results-notice" set:html={inline(notices.calibration_chart)} />
+  </section>
+
   <section class="results-section" aria-labelledby="limitations">
     <h2 id="limitations" class="section-title ink">Known limitations</h2>
     <p class="lede">Weaknesses v0 ships with, written up with their evidence:</p>
@@ -213,6 +268,16 @@ const heads = ['n', 'Accuracy (95% CI)', 'Shapes', 'Accuracy per shape', 'ECE', 
         ))
       }
     </ul>
+  </section>
+
+  <section class="results-section" aria-labelledby="caveats">
+    <h2 id="caveats" class="section-title ink">{caveats.title}</h2>
+    <div class="results-prose">
+      <p set:html={inline(caveats.intro)} />
+      <ul>
+        {caveats.items.map((item) => <li set:html={`<strong>${inline(item.head)}</strong> ${inline(item.text)}`} />)}
+      </ul>
+    </div>
   </section>
 
   <section class="results-section results-section--last" aria-labelledby="method">

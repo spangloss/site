@@ -1,0 +1,16 @@
+---
+// One legend entry: the labeler's marker in its series color, text in ink.
+interface Props {
+  model: string;
+  shape: 'square' | 'circle';
+  text: string;
+}
+const { model, shape, text } = Astro.props;
+---
+
+<span class="chart__key">
+  <svg class={`mark mark--${model}`} width="12" height="12" aria-hidden="true">
+    {shape === 'square' ? <rect class="mark__key" x="1" y="1" width="10" height="10" /> : <circle class="mark__key" cx="6" cy="6" r="5.5" />}
+  </svg>
+  {text}
+</span>

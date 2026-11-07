@@ -1,0 +1,92 @@
+---
+// Chart 2: sec.injection by call shape for the labeler that reports it (Jev in
+// v0). One bar per shape: its length is the number of calls, the filled part how
+// many the labeler answered yes. Planted injections (gold yes) come first.
+import { type Results } from '../../lib/results';
+
+interface Props {
+  results: Results;
+}
+const { results } = Astro.props;
+
+const reporting = results.models.filter((m) => !m.not_reported.includes('sec.injection'));
+if (reporting.length !== 1) throw new Error('InjectionChart: expects exactly one labeler that reports sec.injection');
+const model = reporting[0];
+
+// Scenario shapes first, then the real-session row, which closes the look-alikes.
+const setOrder = ['scenarios', 'real_sessions'];
+const rows = results.injection_by_shape
+  .map((r) => {
+    const m = r.models[model.id];
+    if (m.status !== 'scored') throw new Error(`InjectionChart: ${model.id} has no injection answers for ${r.shape}`);
+    return { ...r, labeled: m.labeled, yes: m.yes };
+  })
+  .sort((a, b) => setOrder.indexOf(a.set) - setOrder.indexOf(b.set));
+const groups = [
+  { title: 'Planted injections', rows: rows.filter((r) => r.gold === 'yes') },
+  { title: 'Look-alikes', rows: rows.filter((r) => r.gold === 'no') },
+];
+if (groups[0].rows.length + groups[1].rows.length !== rows.length) throw new Error('InjectionChart: gold is not yes or no');
+
+const max = Math.max(...rows.map((r) => r.n));
+const w = (v: number) => `${(v / max) * 100}%`;
+const BAR = 14;
+const H = 22;
+const y = (H - BAR) / 2;
+const value = (r: (typeof rows)[number]) =>
+  r.labeled === r.n ? `${r.yes} of ${r.n}` : `${r.yes} of ${r.labeled} labeled`;
+const title = (r: (typeof rows)[number]) =>
+  `${r.shape}: ${model.name} answered yes on ${r.yes} of ${r.labeled} labeled call${r.labeled === 1 ? '' : 's'}` +
+  (r.labeled === r.n ? '' : ` (${r.n} calls)`) +
+  `; gold is ${r.gold}`;
+---
+
+<figure class="chart chart--injection" aria-label={`${model.name}'s sec.injection answers by call shape`}>
+  <div class="chart__legend">
+    <span class="chart__key">
+      <svg class={`mark mark--${model.id}`} width="16" height="12" aria-hidden="true"><rect class="bar__fill" x="0" y="1" width="16" height="10" /></svg>
+      {model.name} answered yes
+    </span>
+    <span class="chart__key">
+      <svg class={`mark mark--${model.id}`} width="16" height="12" aria-hidden="true"><rect class="bar__rest" x="0" y="1" width="16" height="10" /></svg>
+      calls (bar length)
+    </span>
+  </div>
+  <div class="bars">
+    {
+      groups.map((g) => (
+        <>
+          <h3 class="bars__group">{g.title}</h3>
+          {g.rows.map((r) => (
+            <>
+              <span class="bars__label">{r.shape}</span>
+              <div class="bars__plot">
+                <svg class="bars__track" height={H} role="group" aria-label={r.shape}>
+                  <g class={`mark mark--${model.id}`}>
+                    <title>{title(r)}</title>
+                    <rect class="mark__hitbox" x="0" y="0" width={w(r.n)} height={H} />
+                    {/* A rounded rect with a square cap at the baseline; faded as one group */}
+                    <g class="bar__rest">
+                      <rect x="0" y={y} width={w(r.n)} height={BAR} rx="4" />
+                      <rect x="0" y={y} width="8" height={BAR} />
+                    </g>
+                    {r.yes > 0 && (
+                      <g class="bar__fill">
+                        <rect x="0" y={y} width={w(r.yes)} height={BAR} rx="4" />
+                        <rect x="0" y={y} width="8" height={BAR} />
+                      </g>
+                    )}
+                    {r.yes > 0 && r.yes < r.n && <rect class="bar__gap" x={w(r.yes)} y={y} width="2" height={BAR} />}
+                  </g>
+                  <text class="chart__value" x={w(r.n)} dx="8" y={H / 2 + 4}>
+                    {value(r)}
+                  </text>
+                </svg>
+              </div>
+            </>
+          ))}
+        </>
+      ))
+    }
+  </div>
+</figure>
