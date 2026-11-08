@@ -71,7 +71,15 @@ export type Results = {
   taxonomy: string;
   provenance: { generator: string; generated: string; commit: string; source_clean: boolean };
   small_n: number;
-  models: { id: string; name: string; runs: string; sec_model: string; not_reported: string[] }[];
+  models: {
+    id: string;
+    name: string;
+    runs: string;
+    sec_model: string;
+    /** The weights behind the labels; null when they weren't recorded. */
+    checkpoint: string | null;
+    not_reported: string[];
+  }[];
   lead: { status: 'approved' | 'proposed'; text: string };
   how_to_read: TextBlock;
   findings: TextBlock;

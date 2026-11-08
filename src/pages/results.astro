@@ -70,7 +70,7 @@ const heads = ['n', 'Accuracy (95% CI)', 'Shapes', 'Accuracy per shape', 'ECE', 
     <p class="results-meta">
       Taxonomy {results.taxonomy} · generated {prov.generated} at commit{' '}
       <a href={`${REPO}/commit/${prov.commit}`}>{prov.commit.slice(0, 7)}</a> · labelers:{' '}
-      {results.models.map((m) => `${m.name} (${m.runs})`).join(', ')} · † marks a cell resting on fewer than {small} calls
+      {results.models.map((m) => `${m.name} (${m.runs}, ${m.checkpoint ?? 'version not recorded'})`).join(', ')} · † marks a cell resting on fewer than {small} calls
       ·{' '}<a href={repoUrl('site/results.json')}>results.json ↗</a>
     </p>
   </section>
