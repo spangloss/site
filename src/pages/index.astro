@@ -162,12 +162,12 @@ const next = [
 
 <Base
   title="spangloss · Security labels for AI agent telemetry"
-  description="Spangloss reads each tool call in an AI agent’s OpenTelemetry trace and writes a short, typed gloss beside it. Detections and audits run over the glosses, not raw prompts."
+  description="Spangloss is a research project: it reads each tool call in an AI agent’s OpenTelemetry trace and writes a short, typed gloss beside it, then measures how far those glosses can go."
   current="home"
 >
   <section id="top" class="hero">
     <div class="hero__text">
-      <p class="kicker">SECURITY LABELS FOR AI AGENT TELEMETRY</p>
+      <p class="kicker"><span>A RESEARCH PROJECT ·</span> <span>SECURITY LABELS FOR AI AGENT TELEMETRY</span></p>
       <h1 class="ink">
         Your agent’s actions, <span class="marked"
           >glossed.<svg aria-hidden="true" viewBox="0 0 300 80" preserveAspectRatio="none"
@@ -176,9 +176,10 @@ const next = [
         >
       </h1>
       <p class="hero__intro">
-        Spangloss reads each tool call in an AI agent’s OpenTelemetry trace and writes a short, typed gloss beside it:
-        what the call did, what data it touched, whether its output tried to steer the agent, and how sure it is.
-        Detections and audits run over the glosses, not raw prompts.
+        Spangloss is a research project. It reads each tool call in an AI agent’s OpenTelemetry trace and writes a short,
+        typed gloss beside it: what the call did, what data it touched, whether its output tried to steer the agent, and
+        how sure it is. Detections and audits run over the glosses, not raw prompts, and part of the work is finding out
+        where that falls short.
       </p>
       <div class="hero__actions">
         <a href="https://github.com/spangloss/spangloss" class="button button--solid">View on GitHub</a>

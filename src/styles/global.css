@@ -364,6 +364,14 @@ code {
 
 .hero .kicker {
   margin-bottom: 22px;
+  text-wrap: balance;
+}
+
+/* Wider screens: each half of the kicker stays whole, so it breaks at the dot */
+@media (min-width: 641px) {
+  .hero .kicker span {
+    white-space: nowrap;
+  }
 }
 
 .hero h1 {
