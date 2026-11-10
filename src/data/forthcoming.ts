@@ -7,11 +7,6 @@
  */
 export const forthcoming = [
   {
-    number: 2,
-    title: 'What Claude Code’s telemetry doesn’t show',
-    dek: 'Five gaps in an AI coding agent’s OpenTelemetry output, and what each one hides from anyone trying to monitor it.',
-  },
-  {
     number: 3,
     title: 'A prompt note moves probabilities, not answers',
     dek: 'Why spangloss computes structural facts instead of asking a model for them.',
