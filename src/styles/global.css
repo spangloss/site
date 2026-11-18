@@ -1499,6 +1499,11 @@ a.entry-row:hover .entry-row__title {
   --series: var(--ink-soft);
 }
 
+/* Other models next to the one a Notebook chart is about */
+.mark--muted {
+  --series: #877d6e;
+}
+
 .mark__key,
 .mark__dot {
   fill: var(--series);
@@ -1634,6 +1639,41 @@ a.entry-row:hover .entry-row__title {
   width: 100%;
 }
 
+/* Notebook charts: static SVG in an entry's Markdown, sized to the prose column */
+.chart--entry .chart__sub {
+  margin-bottom: 14px;
+}
+
+.bars--entry {
+  grid-template-columns: max-content 1fr;
+  row-gap: 4px;
+}
+
+.bars--entry .bars__group {
+  margin-top: 16px;
+}
+
+.bars--entry .bars__plot {
+  padding-right: 8.5em;
+}
+
+.bars__axis {
+  width: 100%;
+}
+
+.chart .bars__axis text {
+  fill: var(--muted);
+  font-size: 11px;
+}
+
+/* A halo so gridlines don't run through the values */
+.chart--entry .chart__value {
+  paint-order: stroke;
+  stroke: var(--leaf);
+  stroke-width: 4px;
+  stroke-linejoin: round;
+}
+
 /* Chart 3: one stacked bar per labeler */
 .stack {
   display: grid;
@@ -1735,6 +1775,19 @@ a.entry-row:hover .entry-row__title {
 
   .bars__label {
     margin-top: 6px;
+  }
+
+  .bars--entry {
+    grid-template-columns: max-content 1fr;
+    column-gap: 14px;
+  }
+
+  .bars--entry .bars__label {
+    margin-top: 0;
+  }
+
+  .bars--entry .bars__plot {
+    padding-right: 8em;
   }
 
   .bars__plot {

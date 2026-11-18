@@ -7,17 +7,17 @@
  */
 export const forthcoming = [
   {
-    number: 3,
+    number: 4,
     title: 'A prompt note moves probabilities, not answers',
     dek: 'Why spangloss computes structural facts instead of asking a model for them.',
   },
   {
-    number: 4,
+    number: 5,
     title: 'The summarizer that hides the attack',
     dek: 'A web fetch neutralized every planted injection, and left almost no trace of it.',
   },
   {
-    number: 5,
+    number: 6,
     title: 'Gold by construction',
     dek: 'Seeded agent scenarios that label themselves, for about a cent a run.',
   },
